@@ -1,91 +1,4 @@
-// फाइल: api/index.js
-
-const { MongoClient } = require('mongodb');
-
-// ===================================================================================
-// ===== আপনার সকল তথ্য এখানে পূরণ করুন =====
-// ===================================================================================
-const MONGODB_URI = "mongodb+srv://mesohas358:mesohas358@cluster0.6kxy1vc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-const ADMIN_PASSWORD = "Nahid008";
-// ===================================================================================
-
-async function mainHandler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
-    if (req.method === 'GET' && req.query.id) {
-        return await handleApiGet(req, res);
-    }
-    if (req.method === 'POST') {
-        // Vercel POST রিকোয়েস্টের বডি সরাসরি parse করে না, তাই helper লাগবে
-        return req.body ? await handleApiPost(req, res, req.body) : await handleApiPost(req, res);
-    }
-
-    return res.status(200).send(getHtmlPage());
-}
-
-async function handleApiGet(req, res) {
-    const client = new MongoClient(MONGODB_URI);
-    try {
-        await client.connect();
-        const dbName = new URL(MONGODB_URI).pathname.substring(1) || 'linkApp';
-        const db = client.db(dbName);
-        const collection = db.collection("entries");
-        const entry = await collection.findOne({ shortId: req.query.id });
-        if (!entry) return res.status(404).json({ message: 'Link Not Found' });
-        return res.status(200).json(entry);
-    } catch (error) {
-        console.error("API GET Error:", error);
-        return res.status(500).json({ message: 'Internal Server Error' });
-    } finally {
-        await client.close();
-    }
-}
-
-async function handleApiPost(req, res, body) {
-    if (!body) body = await parseJsonBody(req);
-    const { title, links, password } = body;
-    if (password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ message: 'Unauthorized: Invalid Password' });
-    }
-    const client = new MongoClient(MONGODB_URI);
-    try {
-        await client.connect();
-        const dbName = new URL(MONGODB_URI).pathname.substring(1) || 'linkApp';
-        const db = client.db(dbName);
-        const collection = db.collection("entries");
-        const newEntry = {
-            shortId: Math.random().toString(36).substring(2, 8),
-            title,
-            links,
-            createdAt: new Date(),
-        };
-        await collection.insertOne(newEntry);
-        return res.status(201).json(newEntry);
-    } catch (error) {
-        console.error("API POST Error:", error);
-        return res.status(500).json({ message: 'Internal Server Error' });
-    } finally {
-        await client.close();
-    }
-}
-
-function parseJsonBody(req) {
-    return new Promise((resolve, reject) => {
-        let body = '';
-        req.on('data', chunk => body += chunk.toString());
-        req.on('end', () => resolve(JSON.parse(body || '{}')));
-        req.on('error', err => reject(err));
-    });
-}
-
-function getHtmlPage() {
-    // HTML এবং JavaScript কোডটি এখানে বসবে (আগের উত্তর থেকে কপি করুন)
-    return `
+<!-- फाइल: index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -139,15 +52,17 @@ function getHtmlPage() {
     </div>
 </div>
 <script>
-    const API_ENDPOINT = window.location.origin; // Since it's rewritten to root
+    const API_ENDPOINT = '/api/handler'; // আমাদের API ফাইলের সঠিক ঠিকানা
 
     function init() {
         const params = new URLSearchParams(window.location.search);
         const viewId = params.get('id');
         if (viewId) {
+            document.title = "View Links";
             document.getElementById('viewSection').classList.remove('hidden');
             loadLinkForView(viewId);
         } else {
+            document.title = "Admin Panel";
             document.getElementById('adminSection').classList.remove('hidden');
             addLinkField();
         }
@@ -155,14 +70,17 @@ function getHtmlPage() {
 
     async function loadLinkForView(id) {
         try {
-            const res = await fetch(\`\${API_ENDPOINT}?id=\${id}\`);
+            const res = await fetch(`${API_ENDPOINT}?id=${id}`);
             if (!res.ok) throw new Error('Link not found or expired!');
             const data = await res.json();
+            
             document.getElementById('viewTitle').textContent = data.title;
+            document.title = data.title;
+            
             let wait = 5;
             const unlockBtn = document.getElementById('unlockBtn');
             const timer = setInterval(() => {
-                unlockBtn.textContent = \`Unlock Links (\${wait--}s)\`;
+                unlockBtn.textContent = `Unlock Links (${wait--}s)`;
                 if (wait < 0) {
                     clearInterval(timer);
                     unlockBtn.textContent = 'Click to Unlock';
@@ -200,7 +118,7 @@ function getHtmlPage() {
         const container = document.getElementById('links-container');
         const entry = document.createElement('div');
         entry.className = 'link-entry';
-        entry.innerHTML = \`<input type="text" class="linkLabel" placeholder="Label (e.g., 1080p Gofile)"><input type="url" class="linkUrl" placeholder="https://example.com/link"><button class="remove-btn" onclick="this.parentElement.remove()">X</button>\`;
+        entry.innerHTML = `<input type="text" class="linkLabel" placeholder="Label (e.g., 1080p Gofile)"><input type="url" class="linkUrl" placeholder="https://example.com/link"><button class="remove-btn" onclick="this.parentElement.remove()">X</button>`;
         container.appendChild(entry);
     }
 
@@ -239,11 +157,11 @@ function getHtmlPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Failed to create link.');
             
-            const shareableLink = \`\${window.location.origin}\${window.location.pathname}?id=\${data.shortId}\`;
-            adminMessage.innerHTML = \`Success! Share this link: <br><input type="text" value="\${shareableLink}" readonly onclick="this.select()">\`;
+            const shareableLink = `${window.location.origin}?id=${data.shortId}`;
+            adminMessage.innerHTML = `Success! Share this link: <br><input type="text" value="${shareableLink}" readonly onclick="this.select()">`;
             adminMessage.classList.add('success');
         } catch (error) {
-            adminMessage.textContent = \`Error: \${error.message}\`;
+            adminMessage.textContent = `Error: ${error.message}`;
             adminMessage.classList.add('error');
         } finally {
             createBtn.disabled = false;
@@ -254,7 +172,4 @@ function getHtmlPage() {
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
-</html>`;
-}
-
-module.exports = mainHandler;
+</html>
