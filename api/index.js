@@ -6,10 +6,10 @@ const { MongoClient } = require('mongodb');
 
 // আপনার MongoDB Atlas থেকে পাওয়া কানেকশন স্ট্রিংটি এখানে পেস্ট করুন।
 // অবশ্যই <password> এর জায়গায় আপনার আসল পাসওয়ার্ডটি বসিয়ে নেবেন।
-const MONGODB_URI = "mongodb+srv://your_username:<password>@cluster0.xxxxx.mongodb.net/your_database_name?retryWrites=true&w=majority";
+const MONGODB_URI = "mongodb+srv://mesohas358:mesohas358@cluster0.6kxy1vc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 // আপনার অ্যাডমিন প্যানেলে ব্যবহার করার জন্য একটি শক্তিশালী পাসওয়ার্ড এখানে দিন।
-const ADMIN_PASSWORD = "your_secret_admin_password";
+const ADMIN_PASSWORD = "Nahid007";
 
 // ===================================================================================
 // ===== কোডের এই অংশের নিচে কিছু পরিবর্তন করার প্রয়োজন নেই =====
