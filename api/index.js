@@ -1,45 +1,32 @@
+// फाइल: api/index.js
+
 const { MongoClient } = require('mongodb');
 
 // ===================================================================================
 // ===== আপনার সকল তথ্য এখানে পূরণ করুন =====
 // ===================================================================================
-
-// আপনার MongoDB Atlas থেকে পাওয়া কানেকশন স্ট্রিংটি এখানে পেস্ট করুন।
-// অবশ্যই <password> এর জায়গায় আপনার আসল পাসওয়ার্ডটি বসিয়ে নেবেন।
 const MONGODB_URI = "mongodb+srv://mesohas358:mesohas358@cluster0.6kxy1vc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// আপনার অ্যাডমিন প্যানেলে ব্যবহার করার জন্য একটি শক্তিশালী পাসওয়ার্ড এখানে দিন।
-const ADMIN_PASSWORD = "Nahid007";
-
-// ===================================================================================
-// ===== কোডের এই অংশের নিচে কিছু পরিবর্তন করার প্রয়োজন নেই =====
+const ADMIN_PASSWORD = "Nahid008";
 // ===================================================================================
 
-
-// মূল API এবং HTML পরিবেশন করার হ্যান্ডলার
 async function mainHandler(req, res) {
-    // CORS Headers
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    // API অনুরোধগুলো পরিচালনা করা
     if (req.method === 'GET' && req.query.id) {
         return await handleApiGet(req, res);
     }
     if (req.method === 'POST') {
-        return await handleApiPost(req, res);
+        // Vercel POST রিকোয়েস্টের বডি সরাসরি parse করে না, তাই helper লাগবে
+        return req.body ? await handleApiPost(req, res, req.body) : await handleApiPost(req, res);
     }
 
-    // যদি কোনো API রিকোয়েস্ট না থাকে, তাহলে HTML পেজটি দেখাবে
     return res.status(200).send(getHtmlPage());
 }
-
-
-// --- ব্যাকএন্ড ফাংশন ---
 
 async function handleApiGet(req, res) {
     const client = new MongoClient(MONGODB_URI);
@@ -49,7 +36,6 @@ async function handleApiGet(req, res) {
         const db = client.db(dbName);
         const collection = db.collection("entries");
         const entry = await collection.findOne({ shortId: req.query.id });
-
         if (!entry) return res.status(404).json({ message: 'Link Not Found' });
         return res.status(200).json(entry);
     } catch (error) {
@@ -60,22 +46,18 @@ async function handleApiGet(req, res) {
     }
 }
 
-async function handleApiPost(req, res) {
-    // Vercel এর বডি পার্সিং সমস্যা সমাধানের জন্য
-    const body = await parseJsonBody(req);
+async function handleApiPost(req, res, body) {
+    if (!body) body = await parseJsonBody(req);
     const { title, links, password } = body;
-
     if (password !== ADMIN_PASSWORD) {
         return res.status(401).json({ message: 'Unauthorized: Invalid Password' });
     }
-    
     const client = new MongoClient(MONGODB_URI);
     try {
         await client.connect();
         const dbName = new URL(MONGODB_URI).pathname.substring(1) || 'linkApp';
         const db = client.db(dbName);
         const collection = db.collection("entries");
-
         const newEntry = {
             shortId: Math.random().toString(36).substring(2, 8),
             title,
@@ -92,25 +74,17 @@ async function handleApiPost(req, res) {
     }
 }
 
-// Helper function to parse request body in Vercel
 function parseJsonBody(req) {
     return new Promise((resolve, reject) => {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
-        req.on('end', () => {
-            try {
-                resolve(JSON.parse(body));
-            } catch (e) {
-                reject(e);
-            }
-        });
+        req.on('end', () => resolve(JSON.parse(body || '{}')));
+        req.on('error', err => reject(err));
     });
 }
 
-
-// --- ফ্রন্টএন্ড HTML এবং JavaScript ---
-
 function getHtmlPage() {
+    // HTML এবং JavaScript কোডটি এখানে বসবে (আগের উত্তর থেকে কপি করুন)
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -165,7 +139,7 @@ function getHtmlPage() {
     </div>
 </div>
 <script>
-    const API_ENDPOINT = window.location.href;
+    const API_ENDPOINT = window.location.origin; // Since it's rewritten to root
 
     function init() {
         const params = new URLSearchParams(window.location.search);
@@ -263,10 +237,7 @@ function getHtmlPage() {
             });
 
             const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || 'Failed to create link.');
-            }
+            if (!res.ok) throw new Error(data.message || 'Failed to create link.');
             
             const shareableLink = \`\${window.location.origin}\${window.location.pathname}?id=\${data.shortId}\`;
             adminMessage.innerHTML = \`Success! Share this link: <br><input type="text" value="\${shareableLink}" readonly onclick="this.select()">\`;
@@ -283,9 +254,7 @@ function getHtmlPage() {
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
-</html>
-    `;
+</html>`;
 }
 
-// Vercel Serverless Function এক্সপোর্ট
 module.exports = mainHandler;
