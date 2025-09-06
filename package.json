@@ -1,0 +1,7 @@
+{
+  "name": "single-file-link-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "mongodb": "^6.5.0"
+  }
+}
