@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify, redirect, render_template
 from pymongo import MongoClient
 import jwt
 from werkzeug.security import generate_password_hash, check_password_hash
+from bson.objectid import ObjectId # <-- নতুন ইম্পোর্ট
 
 # ----------------------
 # App & DB Configuration
@@ -28,7 +29,7 @@ except Exception as e:
     db = None
 
 # ----------------------
-# Helper Functions
+# Helper Functions (আগের মতোই)
 # ----------------------
 def token_required(f):
     @wraps(f)
@@ -40,12 +41,8 @@ def token_required(f):
         try:
             data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
             current_user = db.users.find_one({"username": data["username"]})
-            if not current_user:
-                return jsonify({"error": "User not found"}), 401
-        except jwt.ExpiredSignatureError:
-            return jsonify({"error": "Token has expired"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"error": "Token is invalid"}), 401
+            if not current_user: return jsonify({"error": "User not found"}), 401
+        except: return jsonify({"error": "Token is invalid"}), 401
         return f(current_user, *args, **kwargs)
     return decorated
 
@@ -56,36 +53,22 @@ def generate_unique_short_id():
             return short_id
 
 # ----------------------
-# HTML Page Routes (Frontend)
+# HTML Page Routes (আগের মতোই)
 # ----------------------
 @app.route("/")
-def home_page():
-    return render_template("index.html")
-
+def home_page(): return render_template("index.html")
 @app.route("/login-page")
-def login_page():
-    return render_template("login.html")
-
+def login_page(): return render_template("login.html")
 @app.route("/register-page")
-def register_page():
-    return render_template("register.html")
-
+def register_page(): return render_template("register.html")
 @app.route("/dashboard")
-def dashboard_page():
-    return render_template("dashboard.html")
-
+def dashboard_page(): return render_template("dashboard.html")
 @app.route("/admin-panel")
-def admin_page():
-    return render_template("admin.html")
-
-# Handle favicon requests to prevent errors
+def admin_page(): return render_template("admin.html")
 @app.route('/favicon.ico')
-def favicon():
-    return '', 204
-
+def favicon(): return '', 204
 @app.route('/favicon.png')
-def favicon_png():
-    return '', 204
+def favicon_png(): return '', 204
 
 # ----------------------
 # API Routes (Backend)
@@ -94,43 +77,65 @@ def favicon_png():
 def register():
     if not db: return jsonify({"error": "Database not connected"}), 500
     data = request.get_json()
+    email = data.get("email") # <-- নতুন: ইমেইল নেওয়া হচ্ছে
     username = data.get("username")
     password = data.get("password")
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
-    if db.users.find_one({"username": username}):
-        return jsonify({"error": "User with this username already exists"}), 409
+    if not email or not username or not password:
+        return jsonify({"error": "Email, username and password are required"}), 400
+    if db.users.find_one({"$or": [{"email": email}, {"username": username}]}):
+        return jsonify({"error": "Email or username already exists"}), 409
+    
     hashed_password = generate_password_hash(password)
-    db.users.insert_one({"username": username, "password": hashed_password, "is_admin": False})
-    return jsonify({"message": f"User '{username}' registered successfully!"}), 201
+    db.users.insert_one({
+        "email": email, # <-- নতুন: ইমেইল সেভ করা হচ্ছে
+        "username": username, 
+        "password": hashed_password, 
+        "is_admin": False
+    })
+    return jsonify({"message": "User registered successfully!"}), 201
 
 @app.route("/login", methods=["POST"])
 def login():
+    # ... (এই ফাংশনটি আগের মতোই থাকবে, কোনো পরিবর্তন নেই) ...
     if not db: return jsonify({"error": "Database not connected"}), 500
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
+    if not username or not password: return jsonify({"error": "Username and password are required"}), 400
     user = db.users.find_one({"username": username})
     if not user or not check_password_hash(user["password"], password):
         return jsonify({"error": "Invalid username or password"}), 401
     token = jwt.encode({"username": user["username"], "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24)}, app.config["SECRET_KEY"], algorithm="HS256")
-    # --- এই লাইনে পরিবর্তন করা হয়েছে ---
-    return jsonify({
-        "token": token, 
-        "username": user['username'],
-        "is_admin": user.get('is_admin', False) # অ্যাডমিন স্ট্যাটাস পাঠানো হচ্ছে
-    })
+    return jsonify({"token": token, "username": user['username'], "is_admin": user.get('is_admin', False)})
+
+# --- নতুন API: অ্যাডমিন সেটিংস এবং ব্যবহারকারীর আয় গণনার জন্য ---
+@app.route("/api/settings", methods=["GET", "POST"])
+@token_required
+def site_settings(current_user):
+    if not db: return jsonify({"error": "Database not connected"}), 500
+    
+    if request.method == "POST": # অ্যাডমিন সেটিংস সেভ করবে
+        if not current_user.get("is_admin"):
+            return jsonify({"error": "Forbidden"}), 403
+        data = request.get_json()
+        cpm_rate = data.get("cpm_rate")
+        db.settings.update_one({}, {"$set": {"cpm_rate": float(cpm_rate)}}, upsert=True)
+        return jsonify({"message": "Settings updated successfully!"})
+
+    # GET request (সবার জন্য)
+    settings = db.settings.find_one()
+    if settings:
+        return jsonify({"cpm_rate": settings.get("cpm_rate", 0)})
+    return jsonify({"cpm_rate": 0}) # ডিফল্ট
+
+# ... (বাকি সব API রুট যেমন shorten, user/links, admin, redirect_url আগের মতোই থাকবে) ...
 
 @app.route("/shorten", methods=["POST"])
 @token_required
 def shorten(current_user):
     if not db: return jsonify({"error": "Database not connected"}), 500
-    data = request.get_json()
-    original_url = data.get("url")
-    if not original_url:
-        return jsonify({"error": "URL is required"}), 400
+    data = request.get_json(); original_url = data.get("url")
+    if not original_url: return jsonify({"error": "URL is required"}), 400
     short_id = generate_unique_short_id()
     db.links.insert_one({"short_id": short_id, "original_url": original_url, "clicks": 0, "created_at": datetime.datetime.utcnow(), "user": current_user["username"]})
     return jsonify({"short_url": f"{request.host_url}{short_id}"}), 201
@@ -155,11 +160,9 @@ def admin_api(current_user):
 def redirect_url(short_id):
     if not db: return jsonify({"error": "Database not connected"}), 500
     link = db.links.find_one_and_update({"short_id": short_id}, {"$inc": {"clicks": 1}})
-    if link:
-        return redirect(link["original_url"])
-    else:
-        return render_template("404.html"), 404
+    if link: return redirect(link["original_url"])
+    else: return render_template("404.html"), 404
 
-# Main entry point (for local development)
+# Main entry point
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
