@@ -74,6 +74,10 @@ def register_page():
 def dashboard_page():
     return render_template("dashboard.html")
 
+@app.route("/admin-panel") # <-- নতুন অ্যাডমিন প্যানেল রুট
+def admin_page():
+    return render_template("admin.html")
+
 # Handle favicon requests to prevent errors
 @app.route('/favicon.ico')
 def favicon():
@@ -84,6 +88,7 @@ def favicon():
 # ----------------------
 @app.route("/register", methods=["POST"])
 def register():
+    # ... (এই অংশ এবং বাকি সব API রুট আগের মতোই থাকবে, কোনো পরিবর্তন নেই) ...
     if not db: return jsonify({"error": "Database not connected"}), 500
     data = request.get_json()
     username = data.get("username")
@@ -129,6 +134,15 @@ def get_user_links(current_user):
     links = list(db.links.find({"user": current_user["username"]}, {"_id": 0}))
     return jsonify(links)
 
+@app.route("/admin") # <-- এটি হলো API রুট, যেখান থেকে অ্যাডমিন ডেটা আসবে
+@token_required
+def admin_api(current_user):
+    if not current_user.get("is_admin"):
+        return jsonify({"error": "Forbidden: Admins only"}), 403
+    users = list(db.users.find({}, {"_id": 0, "password": 0}))
+    links = list(db.links.find({}, {"_id": 0}))
+    return jsonify({"users": users, "links": links})
+
 @app.route("/<short_id>")
 def redirect_url(short_id):
     if not db: return jsonify({"error": "Database not connected"}), 500
@@ -138,6 +152,6 @@ def redirect_url(short_id):
     else:
         return render_template("404.html"), 404
 
-# Main entry point (for local development)
+# Main entry point
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
