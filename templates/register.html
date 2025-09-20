@@ -11,7 +11,6 @@
                 <h3 class="card-title text-center mb-4">Create a New Account</h3>
                 <div id="message" class="alert d-none"></div>
                 <form id="register-form">
-                    <!-- নতুন ইমেইল ফিল্ড -->
                     <div class="form-floating mb-3">
                         <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
                         <label for="email">Email Address</label>
@@ -30,33 +29,46 @@
             </div></div>
         </div></div>
     </div>
+    
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('register-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value; // ইমেইল ভ্যালু নেওয়া
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const messageDiv = document.getElementById('message');
-            
-            messageDiv.classList.add('d-none'); // আগের বার্তা মুছে ফেলা
+        // --- এই লাইনটি যোগ করা হয়েছে যা সব সমস্যার সমাধান করবে ---
+        document.addEventListener('DOMContentLoaded', function() {
 
-            const response = await fetch('/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, username, password }) // ইমেইল পাঠানো
+            // --- আগের সব কোড এখন এর ভেতরে থাকবে ---
+            document.getElementById('register-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const messageDiv = document.getElementById('message');
+                
+                messageDiv.classList.add('d-none'); // আগের বার্তা মুছে ফেলা
+
+                try {
+                    const response = await fetch('/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, username, password })
+                    });
+                    
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        messageDiv.textContent = data.message + ' Redirecting to login...';
+                        messageDiv.className = 'alert alert-success';
+                        setTimeout(() => window.location.href = '/login-page', 2000);
+                    } else {
+                        messageDiv.textContent = data.error || 'Registration failed!';
+                        messageDiv.className = 'alert alert-danger';
+                    }
+                } catch (error) {
+                    messageDiv.textContent = 'An unexpected network error occurred. Please check your connection and try again.';
+                    messageDiv.className = 'alert alert-danger';
+                }
             });
-            const data = await response.json();
-            if (response.ok) {
-                messageDiv.textContent = data.message + ' Redirecting to login...';
-                messageDiv.className = 'alert alert-success';
-                setTimeout(() => window.location.href = '/login-page', 2000);
-            } else {
-                messageDiv.textContent = data.error;
-                messageDiv.className = 'alert alert-danger';
-            }
-        });
-    });
+            
+        }); // --- এবং এই লাইনটি দিয়ে শেষ করা হয়েছে ---
     </script>
 </body>
 </html>
