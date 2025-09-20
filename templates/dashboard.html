@@ -6,7 +6,12 @@
 <body>
     <nav class="navbar navbar-dark bg-dark"><div class="container">
         <a class="navbar-brand" href="/">🔗 My Dashboard</a>
-        <div><span class="navbar-text me-3" id="welcome-user"></span><button class="btn btn-outline-danger" onclick="logout()">Logout</button></div>
+        <div>
+            <!-- অ্যাডমিন বাটনটি এখানে দেখানো হবে -->
+            <div id="admin-link-placeholder" class="d-inline-block"></div>
+            <span class="navbar-text me-3" id="welcome-user"></span>
+            <button class="btn btn-outline-danger" onclick="logout()">Logout</button>
+        </div>
     </div></nav>
     <div class="container mt-4">
         <div class="card mb-4"><div class="card-body">
@@ -26,8 +31,21 @@
     <script>
         const token = localStorage.getItem('jwt_token');
         if (!token) { window.location.href = '/login-page'; }
+        
         document.getElementById('welcome-user').innerText = `Welcome, ${localStorage.getItem('username')}!`;
-        function logout() { localStorage.removeItem('jwt_token'); localStorage.removeItem('username'); window.location.href = '/'; }
+        
+        function logout() { 
+            localStorage.clear(); // সবকিছু মুছে ফেলবে
+            window.location.href = '/'; 
+        }
+
+        // --- নতুন কোড: অ্যাডমিন বাটন দেখানোর জন্য ---
+        const isAdmin = localStorage.getItem('is_admin');
+        if (isAdmin === 'true') {
+            document.getElementById('admin-link-placeholder').innerHTML = 
+                `<a href="/admin-panel" class="btn btn-warning me-2">Admin Panel</a>`;
+        }
+        // ------------------------------------------
 
         async function fetchLinks() {
             const response = await fetch('/user/links', { headers: { 'Authorization': `Bearer ${token}` } });
