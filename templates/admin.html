@@ -4,74 +4,53 @@
     <meta charset="UTF-8"><title>Admin Panel</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark"><div class="container">
-        <a class="navbar-brand" href="/">👑 Admin Panel</a>
-        <div><span class="navbar-text me-3" id="welcome-user"></span><button class="btn btn-outline-danger" onclick="logout()">Logout</button></div>
-    </div></nav>
+    <nav class="navbar navbar-dark bg-dark">...</nav> <!-- Navbar আগের মতোই -->
     <div class="container mt-4" id="admin-content">
-        <div class="row">
-            <div class="col-md-6">
-                <h3>All Users</h3>
-                <div class="table-responsive"><table class="table table-striped">
-                    <thead><tr><th>Username</th><th>Is Admin?</th></tr></thead>
-                    <tbody id="users-table"></tbody>
-                </table></div>
-            </div>
-            <div class="col-md-6">
-                <h3>All Links</h3>
-                <div class="table-responsive"><table class="table table-striped">
-                    <thead><tr><th>Short URL</th><th>Original URL</th><th>Clicks</th><th>User</th></tr></thead>
-                    <tbody id="links-table"></tbody>
-                </table></div>
+        <!-- নতুন Site Settings সেকশন -->
+        <div class="card mb-4">
+            <div class="card-header"><h4>Site Settings</h4></div>
+            <div class="card-body">
+                <form id="settings-form">
+                    <div class="mb-3"><label for="cpm-rate" class="form-label">CPM Rate (Price per 1000 Views in USD)</label>
+                    <input type="number" step="0.01" class="form-control" id="cpm-rate" placeholder="e.g., 1.50"></div>
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </form>
+                <div id="settings-message" class="mt-3"></div>
             </div>
         </div>
+        <div class="row">...</div> <!-- User and Link Tables আগের মতোই -->
     </div>
-    <div class="container mt-4 text-center d-none" id="error-content">
-        <div class="alert alert-danger">
-            <h4>Access Denied</h4>
-            <p>You must be an admin to view this page.</p>
-            <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
-        </div>
-    </div>
+    <div class="container mt-4 text-center d-none" id="error-content">...</div> <!-- Error content আগের মতোই -->
     <script>
-        const token = localStorage.getItem('jwt_token');
-        if (!token) { window.location.href = '/login-page'; }
-        document.getElementById('welcome-user').innerText = `Welcome, ${localStorage.getItem('username')}!`;
-        function logout() { localStorage.removeItem('jwt_token'); localStorage.removeItem('username'); window.location.href = '/'; }
-
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... (login check, logout আগের মতোই) ...
         async function fetchAdminData() {
-            const response = await fetch('/admin', { headers: { 'Authorization': `Bearer ${token}` } });
-            
-            if (response.ok) {
-                const data = await response.json();
-                
-                // Populate users table
-                const usersTable = document.getElementById('users-table');
-                usersTable.innerHTML = '';
-                data.users.forEach(user => {
-                    usersTable.innerHTML += `<tr><td>${user.username}</td><td>${user.is_admin ? 'Yes' : 'No'}</td></tr>`;
-                });
-
-                // Populate links table
-                const linksTable = document.getElementById('links-table');
-                linksTable.innerHTML = '';
-                data.links.forEach(link => {
-                    const shortUrl = `${window.location.origin}/${link.short_id}`;
-                    linksTable.innerHTML += `<tr>
-                        <td><a href="${shortUrl}" target="_blank">${shortUrl}</a></td>
-                        <td class="text-truncate" style="max-width: 200px;">${link.original_url}</td>
-                        <td>${link.clicks}</td>
-                        <td>${link.user}</td>
-                    </tr>`;
-                });
-            } else {
-                // Show access denied message
-                document.getElementById('admin-content').classList.add('d-none');
-                document.getElementById('error-content').classList.remove('d-none');
-            }
+            // ... (আগের মতোই ইউজার ও লিঙ্ক fetch করার কোড) ...
+            // বর্তমান সেটিংস আনা হচ্ছে
+            const settingsResponse = await fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } });
+            const settings = await settingsResponse.json();
+            document.getElementById('cpm-rate').value = settings.cpm_rate || 0;
         }
 
+        document.getElementById('settings-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const cpm_rate = document.getElementById('cpm-rate').value;
+            const response = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ cpm_rate })
+            });
+            const data = await response.json();
+            const msgDiv = document.getElementById('settings-message');
+            if (response.ok) {
+                msgDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            } else {
+                msgDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            }
+        });
+
         fetchAdminData();
+    });
     </script>
 </body>
 </html>
