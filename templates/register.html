@@ -11,6 +11,11 @@
                 <h3 class="card-title text-center mb-4">Create a New Account</h3>
                 <div id="message" class="alert d-none"></div>
                 <form id="register-form">
+                    <!-- নতুন ইমেইল ফিল্ড -->
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+                        <label for="email">Email Address</label>
+                    </div>
                     <div class="form-floating mb-3">
                         <input type="text" class="form-control" id="username" placeholder="Choose a username" required>
                         <label for="username">Username</label>
@@ -19,66 +24,39 @@
                         <input type="password" class="form-control" id="password" placeholder="Choose a password" required>
                         <label for="password">Password</label>
                     </div>
-                    <button type="submit" id="register-button" class="btn btn-primary w-100 btn-lg">
-                        <span id="button-text">Register</span>
-                        <span id="button-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                    </button>
+                    <button type="submit" id="register-button" class="btn btn-primary w-100 btn-lg">Register</button>
                 </form>
                 <p class="text-center mt-3">Already have an account? <a href="/login-page">Login here</a></p>
             </div></div>
         </div></div>
     </div>
-
     <script>
-        // --- এই লাইনটি যোগ করা হয়েছে ---
-        document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value; // ইমেইল ভ্যালু নেওয়া
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
             
-            // --- আগের সব কোড এখন এর ভেতরে থাকবে ---
-            document.getElementById('register-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                const messageDiv = document.getElementById('message');
-                const registerButton = document.getElementById('register-button');
-                const buttonText = document.getElementById('button-text');
-                const buttonSpinner = document.getElementById('button-spinner');
+            messageDiv.classList.add('d-none'); // আগের বার্তা মুছে ফেলা
 
-                registerButton.disabled = true;
-                buttonText.textContent = 'Registering...';
-                buttonSpinner.classList.remove('d-none');
-                messageDiv.classList.add('d-none');
-
-                try {
-                    const response = await fetch('/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        messageDiv.textContent = data.message + ' Redirecting to login...';
-                        messageDiv.className = 'alert alert-success';
-                        setTimeout(() => window.location.href = '/login-page', 2000);
-                    } else {
-                        messageDiv.textContent = data.error;
-                        messageDiv.className = 'alert alert-danger';
-                        registerButton.disabled = false;
-                        buttonText.textContent = 'Register';
-                        buttonSpinner.classList.add('d-none');
-                    }
-                } catch (error) {
-                    messageDiv.textContent = 'An unexpected error occurred. Please try again.';
-                    messageDiv.className = 'alert alert-danger';
-                    registerButton.disabled = false;
-                    buttonText.textContent = 'Register';
-                    buttonSpinner.classList.add('d-none');
-                }
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, username, password }) // ইমেইল পাঠানো
             });
-
-        }); // --- এবং এই লাইনটি দিয়ে শেষ করা হয়েছে ---
+            const data = await response.json();
+            if (response.ok) {
+                messageDiv.textContent = data.message + ' Redirecting to login...';
+                messageDiv.className = 'alert alert-success';
+                setTimeout(() => window.location.href = '/login-page', 2000);
+            } else {
+                messageDiv.textContent = data.error;
+                messageDiv.className = 'alert alert-danger';
+            }
+        });
+    });
     </script>
 </body>
 </html>
