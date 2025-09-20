@@ -83,7 +83,7 @@ def admin_page():
 def favicon():
     return '', 204
 
-@app.route('/favicon.png') # <--- নতুন PNG favicon হ্যান্ডলার
+@app.route('/favicon.png')
 def favicon_png():
     return '', 204
 
@@ -116,7 +116,12 @@ def login():
     if not user or not check_password_hash(user["password"], password):
         return jsonify({"error": "Invalid username or password"}), 401
     token = jwt.encode({"username": user["username"], "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24)}, app.config["SECRET_KEY"], algorithm="HS256")
-    return jsonify({"token": token, "username": user['username']})
+    # --- এই লাইনে পরিবর্তন করা হয়েছে ---
+    return jsonify({
+        "token": token, 
+        "username": user['username'],
+        "is_admin": user.get('is_admin', False) # অ্যাডমিন স্ট্যাটাস পাঠানো হচ্ছে
+    })
 
 @app.route("/shorten", methods=["POST"])
 @token_required
