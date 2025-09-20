@@ -21,7 +21,7 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "a-very-strong-default-secret-key-for-dev")
 
 # MongoDB কানেকশন। এটিও এনভায়রনমেন্ট ভ্যারিয়েবল থেকে লোড করা হচ্ছে।
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/shortener_db")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://Nahid270270:Nahid270270@cluster0.jxsekmi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 try:
     client = MongoClient(MONGO_URI)
     db = client.get_default_database() # URI থেকে ডাটাবেসের নাম নিজে থেকেই নিয়ে নেবে
