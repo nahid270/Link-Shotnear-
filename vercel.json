@@ -7,7 +7,7 @@
             "config": {
                 "maxLambdaSize": "15mb",
                 "runtime": "python3.9",
-                "includeFiles": "templates/**"  // <-- এই লাইনটি যোগ করুন
+                "includeFiles": "templates/**"
             }
         }
     ],
