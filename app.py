@@ -74,6 +74,11 @@ def register_page():
 def dashboard_page():
     return render_template("dashboard.html")
 
+# Handle favicon requests to prevent errors
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
 # ----------------------
 # API Routes (Backend)
 # ----------------------
